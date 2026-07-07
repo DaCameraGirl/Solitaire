@@ -18,6 +18,28 @@
     </div>
   </header>
 
+  <div class="toolbar">
+    <label>
+      Deck:
+      <select id="deck-select">
+        <option value="classic">Classic</option>
+        <option value="royal">Royal</option>
+        <option value="minimal">Minimalist</option>
+        <option value="neon">Neon</option>
+      </select>
+    </label>
+    <label>
+      Mission:
+      <select id="mission-select">
+        <option value="none">Free Play</option>
+        <option value="speed">Speed Run (under 60 moves)</option>
+        <option value="noredraw">No Redraw (never recycle the waste)</option>
+        <option value="acerush">Ace Rush (all 4 Aces home by move 15)</option>
+      </select>
+    </label>
+    <span id="mission-status"></span>
+  </div>
+
   <main>
     <div class="top-row">
       <div class="stock-waste">
