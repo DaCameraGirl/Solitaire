@@ -19,10 +19,12 @@ const MISSIONS = {
 };
 
 let currentDeck = "classic";
+let currentTable = "green";
 try {
   currentDeck = localStorage.getItem("solitaire_deck") || "classic";
+  currentTable = localStorage.getItem("solitaire_table") || "green";
 } catch (err) {
-  // localStorage unavailable (private mode, etc.) — default deck is fine.
+  // localStorage unavailable (private mode, etc.) — defaults are fine.
 }
 let currentMission = "none";
 let missionStatus = "active"; // "active" | "success" | "failed"
@@ -550,6 +552,18 @@ document.getElementById("deck-select").addEventListener("change", (e) => {
   document.body.dataset.deck = currentDeck;
   try {
     localStorage.setItem("solitaire_deck", currentDeck);
+  } catch (err) {
+    // localStorage unavailable — the choice just won't persist across visits.
+  }
+});
+
+document.getElementById("table-select").value = currentTable;
+document.body.dataset.table = currentTable;
+document.getElementById("table-select").addEventListener("change", (e) => {
+  currentTable = e.target.value;
+  document.body.dataset.table = currentTable;
+  try {
+    localStorage.setItem("solitaire_table", currentTable);
   } catch (err) {
     // localStorage unavailable — the choice just won't persist across visits.
   }
