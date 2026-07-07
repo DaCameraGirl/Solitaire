@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Solitaire</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Solitaire</h1>
+    <div class="controls">
+      <span id="move-count">Moves: 0</span>
+      <button id="new-game-btn">New Game</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="top-row">
+      <div class="stock-waste">
+        <div id="stock" class="pile stock"></div>
+        <div id="waste" class="pile waste"></div>
+      </div>
+      <div id="foundations" class="foundations">
+        <div class="pile foundation" data-suit="spades"></div>
+        <div class="pile foundation" data-suit="hearts"></div>
+        <div class="pile foundation" data-suit="clubs"></div>
+        <div class="pile foundation" data-suit="diamonds"></div>
+      </div>
+    </div>
+
+    <div id="tableau" class="tableau"></div>
+  </main>
+
+  <div id="win-overlay" class="win-overlay hidden">
+    <div class="win-message">
+      <h2>You Win! 🎉</h2>
+      <p id="win-stats"></p>
+      <button id="win-new-game-btn">Play Again</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
