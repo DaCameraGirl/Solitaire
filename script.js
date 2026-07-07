@@ -2,13 +2,14 @@ const SUITS = ["spades", "hearts", "diamonds", "clubs"];
 const SUIT_SYMBOLS = { spades: "♠", hearts: "♥", diamonds: "♦", clubs: "♣" };
 const RED_SUITS = ["hearts", "diamonds"];
 const RANK_LABELS = { 1: "A", 11: "J", 12: "Q", 13: "K" };
+const DRAG_THRESHOLD = 4;
 
 let stock = [];
 let waste = [];
 let foundations = { spades: [], hearts: [], diamonds: [], clubs: [] };
 let tableau = [];
-let selection = null;
 let moveCount = 0;
+let drag = null;
 
 function createDeck() {
   const deck = [];
@@ -45,7 +46,7 @@ function dealNewGame() {
   foundations = { spades: [], hearts: [], diamonds: [], clubs: [] };
   tableau = Array.from({ length: 7 }, () => []);
   moveCount = 0;
-  selection = null;
+  drag = null;
 
   let idx = 0;
   for (let col = 0; col < 7; col++) {
@@ -57,7 +58,8 @@ function dealNewGame() {
   stock = deck.slice(idx).map((card) => ({ card }));
 
   document.getElementById("win-overlay").classList.add("hidden");
-  render();
+  document.querySelectorAll(".confetti-piece").forEach((el) => el.remove());
+  render({ deal: true });
 }
 
 function getCardOffsetStep() {
@@ -76,11 +78,12 @@ function makeCardEl(card, faceUp) {
   return el;
 }
 
-function render() {
+function render(opts = {}) {
+  const { deal = false, movedIds = [] } = opts;
   renderStock();
-  renderWaste();
-  renderFoundations();
-  renderTableau();
+  renderWaste(movedIds);
+  renderFoundations(movedIds);
+  renderTableau(deal, movedIds);
   document.getElementById("move-count").textContent = `Moves: ${moveCount}`;
   checkWin();
 }
@@ -98,30 +101,33 @@ function renderStock() {
   }
 }
 
-function renderWaste() {
+function renderWaste(movedIds = []) {
   const el = document.getElementById("waste");
   el.innerHTML = "";
   if (waste.length > 0) {
     const topCard = waste[waste.length - 1];
     const cardEl = makeCardEl(topCard, true);
-    if (selection && selection.pile === "waste") cardEl.classList.add("selected");
+    if (movedIds.includes(topCard.id)) cardEl.classList.add("landed");
     el.appendChild(cardEl);
   }
 }
 
-function renderFoundations() {
+function renderFoundations(movedIds = []) {
   document.querySelectorAll(".foundation").forEach((pileEl) => {
     const suit = pileEl.dataset.suit;
     pileEl.innerHTML = "";
     pileEl.dataset.suitSymbol = SUIT_SYMBOLS[suit];
     const stack = foundations[suit];
     if (stack.length > 0) {
-      pileEl.appendChild(makeCardEl(stack[stack.length - 1], true));
+      const topCard = stack[stack.length - 1];
+      const cardEl = makeCardEl(topCard, true);
+      if (movedIds.includes(topCard.id)) cardEl.classList.add("landed");
+      pileEl.appendChild(cardEl);
     }
   });
 }
 
-function renderTableau() {
+function renderTableau(deal = false, movedIds = []) {
   const container = document.getElementById("tableau");
   container.innerHTML = "";
   const offsetStep = getCardOffsetStep();
@@ -138,13 +144,11 @@ function renderTableau() {
       cardEl.style.zIndex = String(cardIndex);
       cardEl.dataset.col = String(colIndex);
       cardEl.dataset.index = String(cardIndex);
-      if (
-        selection &&
-        selection.pile === "tableau" &&
-        selection.col === colIndex &&
-        cardIndex >= selection.index
-      ) {
-        cardEl.classList.add("selected");
+      if (deal) {
+        cardEl.classList.add("dealing");
+        cardEl.style.animationDelay = `${(colIndex + cardIndex) * 0.03}s`;
+      } else if (movedIds.includes(entry.card.id)) {
+        cardEl.classList.add("landed");
       }
       colEl.appendChild(cardEl);
     });
@@ -152,23 +156,6 @@ function renderTableau() {
     colEl.style.minHeight = `${Math.max(1, column.length) * offsetStep + cardH}px`;
     container.appendChild(colEl);
   });
-}
-
-function getSelectedCard() {
-  if (!selection) return null;
-  if (selection.pile === "waste") return waste[waste.length - 1];
-  if (selection.pile === "tableau") return tableau[selection.col][selection.index].card;
-  return null;
-}
-
-function isSelectionSingleCard() {
-  if (!selection) return false;
-  if (selection.pile === "waste") return true;
-  if (selection.pile === "tableau") {
-    const col = tableau[selection.col];
-    return selection.index === col.length - 1;
-  }
-  return false;
 }
 
 function canPlaceOnFoundation(card, suit) {
@@ -186,119 +173,195 @@ function canPlaceOnTableau(card, destColIndex) {
   return isRed(card) !== isRed(top.card) && card.rank === top.card.rank - 1;
 }
 
-function moveSelectedCardTo(dest) {
-  let movingCards = [];
-  if (selection.pile === "waste") {
-    movingCards = [waste.pop()];
-  } else if (selection.pile === "tableau") {
-    const col = tableau[selection.col];
-    movingCards = col.splice(selection.index).map((entry) => entry.card);
-    if (col.length > 0) col[col.length - 1].faceUp = true;
-  }
+// Returns the cards that would move if this pile/col/index is picked up:
+// the waste's top card, or a tableau card plus everything stacked below it.
+function getRunCards(pile, col, index) {
+  if (pile === "waste") return waste.length ? [waste[waste.length - 1]] : [];
+  if (pile === "tableau") return tableau[col].slice(index).map((entry) => entry.card);
+  return [];
+}
 
-  if (dest.type === "foundation") {
-    foundations[dest.suit].push(...movingCards);
-  } else if (dest.type === "tableau") {
-    movingCards.forEach((card) => tableau[dest.col].push({ card, faceUp: true }));
+function removeRunFromSource(pile, col, index) {
+  if (pile === "waste") return [waste.pop()];
+  if (pile === "tableau") {
+    const colArr = tableau[col];
+    const removed = colArr.splice(index).map((entry) => entry.card);
+    if (colArr.length > 0) colArr[colArr.length - 1].faceUp = true;
+    return removed;
   }
+  return [];
+}
+
+// A plain click (no real drag) tries to send the card straight to its
+// foundation automatically, e.g. clicking an Ace sends it home by itself.
+// Returns the moved card (for the landing animation), or null if nothing moved.
+function tryAutoFoundation(pile, col, index) {
+  const cards = getRunCards(pile, col, index);
+  if (cards.length !== 1) return null;
+  const card = cards[0];
+  if (!canPlaceOnFoundation(card, card.suit)) return null;
+  removeRunFromSource(pile, col, index);
+  foundations[card.suit].push(card);
   moveCount++;
+  return card;
 }
 
 function onStockClick() {
+  let movedIds = [];
   if (stock.length > 0) {
     const { card } = stock.pop();
     waste.push(card);
+    movedIds = [card.id];
   } else if (waste.length > 0) {
     stock = waste.reverse().map((card) => ({ card }));
     waste = [];
   }
-  selection = null;
-  render();
+  render({ movedIds });
 }
 
-function onWasteClick() {
-  if (waste.length === 0) return;
-  selection = selection && selection.pile === "waste" ? null : { pile: "waste" };
-  render();
-}
-
-function onFoundationClick(e) {
-  const pileEl = e.target.closest(".foundation");
-  if (!pileEl || !selection) return;
-  const suit = pileEl.dataset.suit;
-  const card = getSelectedCard();
-  if (card && isSelectionSingleCard() && canPlaceOnFoundation(card, suit)) {
-    moveSelectedCardTo({ type: "foundation", suit });
+function startDrag(e, pile, col, index, originEl) {
+  e.preventDefault();
+  let cardEls;
+  if (pile === "waste") {
+    cardEls = [originEl];
+  } else {
+    const colEl = originEl.closest(".tableau-column");
+    cardEls = Array.from(colEl.querySelectorAll(".card")).slice(index);
   }
-  selection = null;
-  render();
+
+  const baseRects = cardEls.map((el) => el.getBoundingClientRect());
+  const clones = cardEls.map((el, i) => {
+    const clone = el.cloneNode(true);
+    clone.classList.add("dragging-clone");
+    clone.style.position = "fixed";
+    clone.style.left = `${baseRects[i].left}px`;
+    clone.style.top = `${baseRects[i].top}px`;
+    clone.style.margin = "0";
+    clone.style.pointerEvents = "none";
+    clone.style.zIndex = String(1000 + i);
+    document.body.appendChild(clone);
+    el.style.visibility = "hidden";
+    return clone;
+  });
+
+  drag = {
+    pile,
+    col,
+    index,
+    startX: e.clientX,
+    startY: e.clientY,
+    baseRects,
+    clones,
+    hiddenEls: cardEls,
+    moved: false,
+  };
+
+  document.addEventListener("mousemove", onDragMouseMove);
+  document.addEventListener("mouseup", onDragMouseUp);
 }
 
-function attemptMoveToColumn(destCol) {
-  const card = getSelectedCard();
-  if (!card) {
-    selection = null;
-    render();
+function onDragMouseMove(e) {
+  if (!drag) return;
+  const dx = e.clientX - drag.startX;
+  const dy = e.clientY - drag.startY;
+  if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) drag.moved = true;
+  drag.clones.forEach((clone, i) => {
+    clone.style.left = `${drag.baseRects[i].left + dx}px`;
+    clone.style.top = `${drag.baseRects[i].top + dy}px`;
+  });
+}
+
+function onDragMouseUp(e) {
+  if (!drag) return;
+  document.removeEventListener("mousemove", onDragMouseMove);
+  document.removeEventListener("mouseup", onDragMouseUp);
+
+  drag.clones.forEach((clone) => clone.remove());
+  drag.hiddenEls.forEach((el) => (el.style.visibility = ""));
+
+  const { pile, col, index, moved } = drag;
+  const dropX = e.clientX;
+  const dropY = e.clientY;
+  drag = null;
+
+  if (!moved) {
+    const movedCard = tryAutoFoundation(pile, col, index);
+    render({ movedIds: movedCard ? [movedCard.id] : [] });
     return;
   }
-  if (selection.pile === "tableau" && selection.col === destCol) {
-    selection = null;
-    render();
-    return;
+
+  const dropEl = document.elementFromPoint(dropX, dropY);
+  const foundationEl = dropEl ? dropEl.closest(".foundation") : null;
+  const columnEl = dropEl ? dropEl.closest(".tableau-column") : null;
+  const cards = getRunCards(pile, col, index);
+  let movedIds = [];
+
+  if (cards.length > 0 && foundationEl && cards.length === 1 && canPlaceOnFoundation(cards[0], foundationEl.dataset.suit)) {
+    removeRunFromSource(pile, col, index);
+    foundations[foundationEl.dataset.suit].push(cards[0]);
+    moveCount++;
+    movedIds = [cards[0].id];
+  } else if (cards.length > 0 && columnEl) {
+    const destCol = parseInt(columnEl.dataset.col, 10);
+    const sameColumn = pile === "tableau" && col === destCol;
+    if (!sameColumn && canPlaceOnTableau(cards[0], destCol)) {
+      removeRunFromSource(pile, col, index);
+      cards.forEach((card) => tableau[destCol].push({ card, faceUp: true }));
+      moveCount++;
+      movedIds = cards.map((card) => card.id);
+    }
   }
-  if (canPlaceOnTableau(card, destCol)) {
-    moveSelectedCardTo({ type: "tableau", col: destCol });
-  }
-  selection = null;
-  render();
+
+  render({ movedIds });
 }
 
-function onTableauClick(e) {
-  const colEl = e.target.closest(".tableau-column");
-  if (!colEl) return;
-  const colIndex = parseInt(colEl.dataset.col, 10);
+function onWasteMouseDown(e) {
   const cardEl = e.target.closest(".card");
+  if (!cardEl || waste.length === 0) return;
+  startDrag(e, "waste", null, waste.length - 1, cardEl);
+}
 
-  if (cardEl) {
-    const cardCol = parseInt(cardEl.dataset.col, 10);
-    const cardIndex = parseInt(cardEl.dataset.index, 10);
-    const entry = tableau[cardCol][cardIndex];
-
-    if (!entry.faceUp) return;
-
-    if (selection && selection.pile === "tableau" && selection.col === cardCol && selection.index === cardIndex) {
-      selection = null;
-      render();
-      return;
-    }
-
-    if (selection) {
-      attemptMoveToColumn(cardCol);
-      return;
-    }
-
-    selection = { pile: "tableau", col: cardCol, index: cardIndex };
-    render();
-    return;
-  }
-
-  if (selection) {
-    attemptMoveToColumn(colIndex);
-  }
+function onTableauMouseDown(e) {
+  const cardEl = e.target.closest(".card");
+  if (!cardEl) return;
+  const col = parseInt(cardEl.dataset.col, 10);
+  const index = parseInt(cardEl.dataset.index, 10);
+  const entry = tableau[col][index];
+  if (!entry.faceUp) return;
+  startDrag(e, "tableau", col, index, cardEl);
 }
 
 function checkWin() {
   const total = Object.values(foundations).reduce((sum, arr) => sum + arr.length, 0);
   if (total === 52) {
+    const overlay = document.getElementById("win-overlay");
+    const alreadyShown = !overlay.classList.contains("hidden");
     document.getElementById("win-stats").textContent = `Completed in ${moveCount} moves.`;
-    document.getElementById("win-overlay").classList.remove("hidden");
+    overlay.classList.remove("hidden");
+    if (!alreadyShown) spawnConfetti();
+  }
+}
+
+function spawnConfetti() {
+  const overlay = document.getElementById("win-overlay");
+  const symbols = ["♠", "♥", "♦", "♣"];
+  const colors = ["#d4af37", "#ffffff", "#b5122e", "#2ecc71"];
+  for (let i = 0; i < 28; i++) {
+    const piece = document.createElement("div");
+    piece.className = "confetti-piece";
+    piece.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+    piece.style.left = `${Math.random() * 100}%`;
+    piece.style.color = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDuration = `${1.4 + Math.random() * 1.4}s`;
+    piece.style.animationDelay = `${Math.random() * 0.6}s`;
+    piece.addEventListener("animationend", () => piece.remove());
+    overlay.appendChild(piece);
   }
 }
 
 document.getElementById("stock").addEventListener("click", onStockClick);
-document.getElementById("waste").addEventListener("click", onWasteClick);
-document.getElementById("foundations").addEventListener("click", onFoundationClick);
-document.getElementById("tableau").addEventListener("click", onTableauClick);
+document.getElementById("waste").addEventListener("mousedown", onWasteMouseDown);
+document.getElementById("tableau").addEventListener("mousedown", onTableauMouseDown);
 document.getElementById("new-game-btn").addEventListener("click", dealNewGame);
 document.getElementById("win-new-game-btn").addEventListener("click", dealNewGame);
 
