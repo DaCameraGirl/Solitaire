@@ -70,6 +70,41 @@ header h1 {
   font-size: 0.9rem;
 }
 
+.toolbar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+  padding: 8px 20px;
+  background: rgba(0, 0, 0, 0.25);
+  font-size: 0.85rem;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+}
+
+.toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toolbar select {
+  background: #1a1030;
+  color: #f0f0f0;
+  border: 1px solid var(--gold-dim);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+}
+
+#mission-status {
+  font-weight: 600;
+}
+
+#mission-status.success { color: #2ecc71; }
+#mission-status.failed { color: #ff6b6b; }
+
 button {
   background: linear-gradient(180deg, var(--gold), #a8842a);
   color: #1a1408;
@@ -155,6 +190,62 @@ main {
 
 .card.red { color: var(--red); }
 .card.black { color: var(--black); }
+
+.card:not(.face-down)::before {
+  content: attr(data-suit-symbol);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.4rem;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Royal deck: ivory card faces, serif type, gold watermark */
+body[data-deck="royal"] .card:not(.face-down) {
+  background: linear-gradient(160deg, #fffaf0, #f0e6c8);
+  border: 1px solid var(--gold);
+  font-family: Georgia, "Times New Roman", serif;
+}
+body[data-deck="royal"] .card.red { color: #8b1a2b; }
+body[data-deck="royal"] .card.black { color: #14213d; }
+body[data-deck="royal"] .card:not(.face-down)::before {
+  opacity: 0.16;
+  color: var(--gold);
+}
+
+/* Minimalist deck: plain white, clean sans-serif, single corner */
+body[data-deck="minimal"] .card:not(.face-down) {
+  background: #ffffff;
+  border: 1px solid #000;
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  box-shadow: none;
+}
+body[data-deck="minimal"] .card.red { color: #d32f2f; }
+body[data-deck="minimal"] .card.black { color: #000000; }
+body[data-deck="minimal"] .card .corner.bottom { display: none; }
+body[data-deck="minimal"] .card .corner.top { font-size: 1.15rem; }
+
+/* Neon deck: dark faces, glowing suit colors, monospace */
+body[data-deck="neon"] .card:not(.face-down) {
+  background: #0b0b18;
+  border: 1px solid #29e6ff;
+  font-family: "Consolas", "Courier New", monospace;
+  box-shadow: 0 0 10px rgba(41, 230, 255, 0.25);
+}
+body[data-deck="neon"] .card.red {
+  color: #ff2fd0;
+  text-shadow: 0 0 6px rgba(255, 47, 208, 0.7);
+}
+body[data-deck="neon"] .card.black {
+  color: #29e6ff;
+  text-shadow: 0 0 6px rgba(41, 230, 255, 0.7);
+}
+body[data-deck="neon"] .card:not(.face-down)::before {
+  opacity: 0.28;
+}
 
 .card.face-down {
   cursor: default;

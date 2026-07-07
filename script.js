@@ -11,6 +11,23 @@ let tableau = [];
 let moveCount = 0;
 let drag = null;
 
+const MISSIONS = {
+  none: { label: "Free Play" },
+  speed: { label: "Speed Run (under 60 moves)" },
+  noredraw: { label: "No Redraw (never recycle the waste)" },
+  acerush: { label: "Ace Rush (all 4 Aces home by move 15)" },
+};
+
+let currentDeck = "classic";
+try {
+  currentDeck = localStorage.getItem("solitaire_deck") || "classic";
+} catch (err) {
+  // localStorage unavailable (private mode, etc.) — default deck is fine.
+}
+let currentMission = "none";
+let missionStatus = "active"; // "active" | "success" | "failed"
+let usedRedraw = false;
+
 // ==========================================
 // SOUND EFFECTS & AMBIENT MUSIC (Web Audio)
 // ==========================================
@@ -150,6 +167,8 @@ function dealNewGame() {
   tableau = Array.from({ length: 7 }, () => []);
   moveCount = 0;
   drag = null;
+  missionStatus = "active";
+  usedRedraw = false;
 
   let idx = 0;
   for (let col = 0; col < 7; col++) {
@@ -176,6 +195,7 @@ function makeCardEl(card, faceUp) {
   el.dataset.cardId = card.id;
   if (faceUp) {
     const label = cardLabel(card);
+    el.dataset.suitSymbol = SUIT_SYMBOLS[card.suit];
     el.innerHTML = `<div class="corner top">${label}</div><div class="corner bottom">${label}</div>`;
   }
   return el;
@@ -189,6 +209,7 @@ function render(opts = {}) {
   renderTableau(deal, movedIds);
   document.getElementById("move-count").textContent = `Moves: ${moveCount}`;
   checkWin();
+  evaluateMission();
 }
 
 function renderStock() {
@@ -319,6 +340,7 @@ function onStockClick() {
   } else if (waste.length > 0) {
     stock = waste.reverse().map((card) => ({ card }));
     waste = [];
+    usedRedraw = true;
   }
   render({ movedIds });
 }
@@ -453,6 +475,50 @@ function checkWin() {
   }
 }
 
+// Missions are objectives layered on top of normal play. Once a mission
+// locks into "success" or "failed" it stays there for the rest of the game.
+function evaluateMission() {
+  if (currentMission !== "none" && missionStatus === "active") {
+    const total = Object.values(foundations).reduce((sum, arr) => sum + arr.length, 0);
+
+    if (currentMission === "speed") {
+      if (total === 52) {
+        missionStatus = moveCount <= 60 ? "success" : "failed";
+      } else if (moveCount > 60) {
+        missionStatus = "failed";
+      }
+    } else if (currentMission === "noredraw") {
+      if (usedRedraw) {
+        missionStatus = "failed";
+      } else if (total === 52) {
+        missionStatus = "success";
+      }
+    } else if (currentMission === "acerush") {
+      const acesHome = SUITS.filter((suit) => foundations[suit].some((card) => card.rank === 1)).length;
+      if (acesHome === 4 && moveCount <= 15) {
+        missionStatus = "success";
+      } else if (moveCount > 15) {
+        missionStatus = "failed";
+      }
+    }
+  }
+
+  updateMissionStatusUI();
+}
+
+function updateMissionStatusUI() {
+  const el = document.getElementById("mission-status");
+  if (!el) return;
+  if (currentMission === "none") {
+    el.textContent = "";
+    el.className = "";
+    return;
+  }
+  const suffix = missionStatus === "success" ? " — Complete!" : missionStatus === "failed" ? " — Failed" : " — In progress";
+  el.textContent = `Mission: ${MISSIONS[currentMission].label}${suffix}`;
+  el.className = missionStatus;
+}
+
 function spawnConfetti() {
   const overlay = document.getElementById("win-overlay");
   const symbols = ["♠", "♥", "♦", "♣"];
@@ -476,6 +542,23 @@ document.getElementById("tableau").addEventListener("mousedown", onTableauMouseD
 document.getElementById("new-game-btn").addEventListener("click", dealNewGame);
 document.getElementById("win-new-game-btn").addEventListener("click", dealNewGame);
 document.getElementById("music-toggle-btn").addEventListener("click", toggleMusic);
+
+document.getElementById("deck-select").value = currentDeck;
+document.body.dataset.deck = currentDeck;
+document.getElementById("deck-select").addEventListener("change", (e) => {
+  currentDeck = e.target.value;
+  document.body.dataset.deck = currentDeck;
+  try {
+    localStorage.setItem("solitaire_deck", currentDeck);
+  } catch (err) {
+    // localStorage unavailable — the choice just won't persist across visits.
+  }
+});
+
+document.getElementById("mission-select").addEventListener("change", (e) => {
+  currentMission = e.target.value;
+  dealNewGame();
+});
 
 initAmbientParticles();
 dealNewGame();
