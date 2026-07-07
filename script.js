@@ -11,6 +11,109 @@ let tableau = [];
 let moveCount = 0;
 let drag = null;
 
+// ==========================================
+// SOUND EFFECTS & AMBIENT MUSIC (Web Audio)
+// ==========================================
+let audioCtx = null;
+let musicPlaying = false;
+let musicChordIndex = 0;
+let musicTimeoutId = null;
+
+const MUSIC_CHORDS = [
+  [110.0, 130.81, 164.81], // A minor
+  [87.31, 110.0, 130.81], // F major
+  [130.81, 164.81, 196.0], // C major
+  [98.0, 123.47, 146.83], // G major
+];
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+
+function playTone(freq, duration, type = "sine", peakGain = 0.2, startDelay = 0) {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    const t0 = ctx.currentTime + startDelay;
+    gain.gain.setValueAtTime(0, t0);
+    gain.gain.linearRampToValueAtTime(peakGain, t0 + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + duration);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + duration + 0.02);
+  } catch (err) {
+    // Web Audio unavailable or blocked — fail silently, gameplay still works.
+  }
+}
+
+function playDrawSound() {
+  playTone(520, 0.08, "square", 0.12);
+}
+
+function playLandSound() {
+  playTone(340, 0.1, "sine", 0.18);
+  playTone(680, 0.08, "sine", 0.08, 0.02);
+}
+
+function playInvalidSound() {
+  playTone(140, 0.15, "sawtooth", 0.12);
+}
+
+function playWinFanfare() {
+  const notes = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
+  notes.forEach((freq, i) => playTone(freq, 0.28, "triangle", 0.16, i * 0.12));
+}
+
+function playMusicChord(freqs) {
+  freqs.forEach((freq, i) => playTone(freq, 1.8, "sine", 0.045, i * 0.03));
+  playTone(freqs[0] * 2, 1.6, "triangle", 0.025, 0.05);
+}
+
+function scheduleNextMusicChord() {
+  if (!musicPlaying) return;
+  playMusicChord(MUSIC_CHORDS[musicChordIndex]);
+  musicChordIndex = (musicChordIndex + 1) % MUSIC_CHORDS.length;
+  musicTimeoutId = setTimeout(scheduleNextMusicChord, 2000);
+}
+
+function toggleMusic() {
+  musicPlaying = !musicPlaying;
+  const btn = document.getElementById("music-toggle-btn");
+  if (musicPlaying) {
+    btn.textContent = "🎵 Music: On";
+    scheduleNextMusicChord();
+  } else {
+    btn.textContent = "🎵 Music";
+    if (musicTimeoutId) clearTimeout(musicTimeoutId);
+  }
+}
+
+// ==========================================
+// AMBIENT BACKGROUND PARTICLES (purely decorative, runs once)
+// ==========================================
+function initAmbientParticles() {
+  const container = document.getElementById("ambient-particles");
+  const symbols = ["♠", "♥", "♦", "♣"];
+  const count = 16;
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement("span");
+    el.className = "ambient-particle";
+    el.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+    el.style.left = `${Math.random() * 100}%`;
+    el.style.fontSize = `${14 + Math.random() * 18}px`;
+    el.style.setProperty("--drift-x", `${Math.random() * 80 - 40}px`);
+    const duration = 14 + Math.random() * 14;
+    el.style.animationDuration = `${duration}s`;
+    el.style.animationDelay = `${-Math.random() * duration}s`;
+    container.appendChild(el);
+  }
+}
+
 function createDeck() {
   const deck = [];
   let id = 0;
@@ -212,6 +315,7 @@ function onStockClick() {
     const { card } = stock.pop();
     waste.push(card);
     movedIds = [card.id];
+    playDrawSound();
   } else if (waste.length > 0) {
     stock = waste.reverse().map((card) => ({ card }));
     waste = [];
@@ -286,6 +390,7 @@ function onDragMouseUp(e) {
 
   if (!moved) {
     const movedCard = tryAutoFoundation(pile, col, index);
+    if (movedCard) playLandSound();
     render({ movedIds: movedCard ? [movedCard.id] : [] });
     return;
   }
@@ -311,6 +416,9 @@ function onDragMouseUp(e) {
       movedIds = cards.map((card) => card.id);
     }
   }
+
+  if (movedIds.length > 0) playLandSound();
+  else playInvalidSound();
 
   render({ movedIds });
 }
@@ -338,7 +446,10 @@ function checkWin() {
     const alreadyShown = !overlay.classList.contains("hidden");
     document.getElementById("win-stats").textContent = `Completed in ${moveCount} moves.`;
     overlay.classList.remove("hidden");
-    if (!alreadyShown) spawnConfetti();
+    if (!alreadyShown) {
+      spawnConfetti();
+      playWinFanfare();
+    }
   }
 }
 
@@ -364,5 +475,7 @@ document.getElementById("waste").addEventListener("mousedown", onWasteMouseDown)
 document.getElementById("tableau").addEventListener("mousedown", onTableauMouseDown);
 document.getElementById("new-game-btn").addEventListener("click", dealNewGame);
 document.getElementById("win-new-game-btn").addEventListener("click", dealNewGame);
+document.getElementById("music-toggle-btn").addEventListener("click", toggleMusic);
 
+initAmbientParticles();
 dealNewGame();
