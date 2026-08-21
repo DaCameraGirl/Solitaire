@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tri-Peaks – Ocean</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="bubble-layer" aria-hidden="true"></div>
+
+  <header>
+    <div class="header-left">
+      <a class="back-link" href="../../index.html">← Back to Menu</a>
+      <h1>🐚 Tri-Peaks Ocean 🐠</h1>
+    </div>
+    <div class="controls">
+      <button id="sound-toggle-btn">🔊 Sound</button>
+      <button id="new-game-btn">New Game</button>
+      <button id="rules-btn" aria-label="Rules">?</button>
+    </div>
+  </header>
+
+  <div class="hud">
+    <div class="hud-stats">
+      <span><strong id="stat-remaining">28</strong> cards left</span>
+      <span><strong id="stat-moves">0</strong> moves</span>
+      <span>Streak: <strong id="stat-streak">0</strong></span>
+      <span>Best: <strong id="stat-best">0</strong></span>
+    </div>
+    <div class="hud-right">
+      <label>Difficulty
+        <select id="difficulty-select">
+          <option value="easy">Easy – 1 stock</option>
+          <option value="normal" selected>Normal – 1 redeal</option>
+          <option value="hard">Hard – no redeal</option>
+        </select>
+      </label>
+      <button id="hint-btn">Hint</button>
+      <button id="undo-btn">Undo</button>
+    </div>
+  </div>
+
+  <main>
+    <div id="peaks" class="peaks"></div>
+    <div class="bottom-bar">
+      <div id="stock" class="pile stock" title="Stock"></div>
+      <div id="waste" class="pile waste" title="Waste"></div>
+      <div class="bottom-right">
+        <span id="stock-count">Stock: 24</span>
+        <span id="redeal-count"></span>
+      </div>
+    </div>
+  </main>
+
+  <div id="rules-overlay" class="overlay hidden" role="dialog" aria-modal="true">
+    <div class="overlay-panel">
+      <h2>How to play Tri-Peaks</h2>
+      <ul>
+        <li>Clear all 28 peak cards to win.</li>
+        <li>Click a face-up peak card that is <strong>rank ±1</strong> from the waste top card.</li>
+        <li>Ace wraps to King and vice versa.</li>
+        <li>If stuck, draw from the stock.</li>
+        <li>Longer streaks = higher score!</li>
+      </ul>
+      <p class="difficulty-note">
+        <strong>Easy</strong>: 24-card stock, no redeal.<br>
+        <strong>Normal</strong>: 24-card stock, 1 redeal allowed.<br>
+        <strong>Hard</strong>: 18-card stock, no redeal.
+      </p>
+      <button id="rules-close-btn">Got it</button>
+    </div>
+  </div>
+
+  <div id="win-overlay" class="overlay hidden">
+    <div class="overlay-panel win-panel">
+      <h2>🐚 Clear Sailing! 🐠</h2>
+      <p id="win-stats"></p>
+      <div class="win-actions">
+        <button id="win-new-game-btn">Play Again</button>
+        <a class="btn-secondary" href="../../index.html">Back to Menu</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
