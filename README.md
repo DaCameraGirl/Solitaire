@@ -29,8 +29,7 @@
 </p>
 
 **Classic Klondike solitaire, playable right in your browser.** Drag and drop cards,
-pick a deck style, pick a table color, try a challenge mission, and play with music
-and sound on. No install, no build step, no dependencies — just HTML, CSS, and
+pick a deck style, pick a table color, and try a challenge mission. No install, no build step, no dependencies — just HTML, CSS, and
 vanilla JavaScript.
 
 Live: [dacameragirl.github.io/Solitaire](https://dacameragirl.github.io/Solitaire/)
@@ -43,10 +42,10 @@ Live: [dacameragirl.github.io/Solitaire](https://dacameragirl.github.io/Solitair
 |---|---|
 | **Real drag-and-drop** | Pick up a card and drop it where it belongs — no click-then-click |
 | **Auto-foundation** | A plain click on a card sends it straight to its foundation if there's a valid spot, e.g. an Ace goes home by itself |
-| **4 deck styles** | Classic, Royal (ivory/serif/gold watermark), Minimalist, and Neon — your choice is remembered next time |
+| **4 deck styles** | Classic, Royal, Minimalist, and Neon with distinct faces and card backs — your choice is remembered next time |
 | **5 table colors** | Green Felt, Purple, Navy, Burgundy, Charcoal — also remembered |
 | **Challenge missions** | Speed Run (win under 60 moves), No Redraw (never recycle the waste), Ace Rush (all 4 Aces home by move 15) — layered on top of normal play |
-| **Music &amp; sound** | A toggleable looping ambient soundtrack, plus sound effects for drawing, landing a card, an invalid move, and winning |
+| **Sound effects** | Sound effects for drawing, landing a card, an invalid move, and winning |
 | **Win celebration** | A confetti burst and fanfare when you clear the board |
 
 ## How to play

@@ -26,6 +26,8 @@ try {
 } catch (err) {
   // localStorage unavailable (private mode, etc.) — defaults are fine.
 }
+if (currentDeck === "minimalist") currentDeck = "minimal";
+if (!["classic", "royal", "minimal", "neon"].includes(currentDeck)) currentDeck = "classic";
 let currentMission = "none";
 let missionStatus = "active"; // "active" | "success" | "failed"
 let usedRedraw = false;
