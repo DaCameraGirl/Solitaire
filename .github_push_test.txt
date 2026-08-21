@@ -1,0 +1,5 @@
+GitHub push test – Cheetah – 2026-08-21 15:10 UTC
+
+If you can read this, the GitHub MCP connector is working again. ✅
+
+This file is safe to delete.
