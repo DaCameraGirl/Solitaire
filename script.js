@@ -31,19 +31,9 @@ let missionStatus = "active"; // "active" | "success" | "failed"
 let usedRedraw = false;
 
 // ==========================================
-// SOUND EFFECTS & AMBIENT MUSIC (Web Audio)
+// SOUND EFFECTS (Web Audio)
 // ==========================================
 let audioCtx = null;
-let musicPlaying = false;
-let musicChordIndex = 0;
-let musicTimeoutId = null;
-
-const MUSIC_CHORDS = [
-  [110.0, 130.81, 164.81], // A minor
-  [87.31, 110.0, 130.81], // F major
-  [130.81, 164.81, 196.0], // C major
-  [98.0, 123.47, 146.83], // G major
-];
 
 function getAudioCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -86,30 +76,6 @@ function playInvalidSound() {
 function playWinFanfare() {
   const notes = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
   notes.forEach((freq, i) => playTone(freq, 0.28, "triangle", 0.16, i * 0.12));
-}
-
-function playMusicChord(freqs) {
-  freqs.forEach((freq, i) => playTone(freq, 1.8, "sine", 0.045, i * 0.03));
-  playTone(freqs[0] * 2, 1.6, "triangle", 0.025, 0.05);
-}
-
-function scheduleNextMusicChord() {
-  if (!musicPlaying) return;
-  playMusicChord(MUSIC_CHORDS[musicChordIndex]);
-  musicChordIndex = (musicChordIndex + 1) % MUSIC_CHORDS.length;
-  musicTimeoutId = setTimeout(scheduleNextMusicChord, 2000);
-}
-
-function toggleMusic() {
-  musicPlaying = !musicPlaying;
-  const btn = document.getElementById("music-toggle-btn");
-  if (musicPlaying) {
-    btn.textContent = "🎵 Music: On";
-    scheduleNextMusicChord();
-  } else {
-    btn.textContent = "🎵 Music";
-    if (musicTimeoutId) clearTimeout(musicTimeoutId);
-  }
 }
 
 // ==========================================
@@ -543,7 +509,6 @@ document.getElementById("waste").addEventListener("mousedown", onWasteMouseDown)
 document.getElementById("tableau").addEventListener("mousedown", onTableauMouseDown);
 document.getElementById("new-game-btn").addEventListener("click", dealNewGame);
 document.getElementById("win-new-game-btn").addEventListener("click", dealNewGame);
-document.getElementById("music-toggle-btn").addEventListener("click", toggleMusic);
 
 document.getElementById("deck-select").value = currentDeck;
 document.body.dataset.deck = currentDeck;
