@@ -231,18 +231,24 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.4rem;
-  opacity: 0;
+  font-size: 3.25rem;
+  opacity: 0.18;
   pointer-events: none;
 }
 
 /* Classic deck: clean casino-style faces with a blue patterned back */
 body[data-deck="classic"] .card:not(.face-down) {
   background:
-    radial-gradient(circle at 50% 52%, rgba(15, 64, 120, 0.08), transparent 28%),
-    linear-gradient(180deg, #ffffff, #f4f4ef);
-  border: 1px solid #c9c4b8;
+    radial-gradient(circle at 50% 52%, rgba(15, 64, 120, 0.12), transparent 30%),
+    linear-gradient(180deg, #fffdf4, #eee7d8);
+  border: 2px solid #b9aa8e;
   font-family: "Segoe UI", Arial, sans-serif;
+}
+body[data-deck="classic"] .card.red { color: #b5122e; }
+body[data-deck="classic"] .card.black { color: #161616; }
+body[data-deck="classic"] .card:not(.face-down)::before {
+  opacity: 0.34;
+  font-size: 3.55rem;
 }
 body[data-deck="classic"] .card.face-down {
   background:
@@ -255,8 +261,8 @@ body[data-deck="classic"] .card.face-down {
 /* Royal deck: ivory card faces, serif type, gold watermark */
 body[data-deck="royal"] .card:not(.face-down) {
   background:
-    radial-gradient(circle at 50% 50%, rgba(212,175,55,.24), transparent 32%),
-    linear-gradient(160deg, #fff7df, #ead7a8);
+    radial-gradient(circle at 50% 50%, rgba(212,175,55,.18), transparent 34%),
+    linear-gradient(160deg, #fff3cc, #d9bf7e);
   border: 2px solid var(--gold);
   font-family: Georgia, "Times New Roman", serif;
   box-shadow: 0 2px 8px rgba(91, 62, 12, .35);
@@ -264,8 +270,8 @@ body[data-deck="royal"] .card:not(.face-down) {
 body[data-deck="royal"] .card.red { color: #8b1a2b; }
 body[data-deck="royal"] .card.black { color: #14213d; }
 body[data-deck="royal"] .card:not(.face-down)::before {
-  opacity: 0.2;
-  color: var(--gold);
+  opacity: 0.42;
+  font-size: 3.7rem;
 }
 body[data-deck="royal"] .card.face-down {
   background:
@@ -278,7 +284,7 @@ body[data-deck="royal"] .card.face-down::after { content: "\265B"; color: rgba(2
 
 /* Minimalist deck: plain white, clean sans-serif, single corner */
 body[data-deck="minimal"] .card:not(.face-down) {
-  background: #ffffff;
+  background: #f2f2ec;
   border: 2px solid #111;
   border-radius: 2px;
   font-family: -apple-system, "Segoe UI", sans-serif;
@@ -286,8 +292,12 @@ body[data-deck="minimal"] .card:not(.face-down) {
 }
 body[data-deck="minimal"] .card.red { color: #d32f2f; }
 body[data-deck="minimal"] .card.black { color: #000000; }
-body[data-deck="minimal"] .card .corner.bottom { display: none; }
-body[data-deck="minimal"] .card .corner.top { font-size: 1.15rem; }
+body[data-deck="minimal"] .card .corner.bottom { display: block; }
+body[data-deck="minimal"] .card .corner.top { font-size: 1.05rem; }
+body[data-deck="minimal"] .card:not(.face-down)::before {
+  opacity: 0.72;
+  font-size: 3.35rem;
+}
 body[data-deck="minimal"] .card.face-down {
   background:
     linear-gradient(90deg, #111 0 2px, transparent 2px calc(100% - 2px), #111 calc(100% - 2px)),
